@@ -45,13 +45,35 @@
           (_ nil)))
       (when ready (apply callback cbargs)))))
 
-
 (defun bibtex-fetch/url-retrieve (url callback &optional cbargs)
   "Asynchronously retrieve URL and then CALLBACK.
 
 HTTP redirects are processed automatically. CALLBACK is not called if errors
 occur."
   (url-retrieve url #'bibtex-fetch/url-retrieve-callback (list callback cbargs) t))
+
+(defvar *bibtex-fetch/doi-waiting* t
+  "Stores waiting state for url retrieval.")
+
+(defvar *bibtex-fetch/doi-redirect* nil
+  "Stores redirect url from a callback function.")
+
+(defun bibtex-fetch/url-redirect-callback (status)
+  (pcase (plist-get status :error)
+    (`nil
+     (pcase (plist-get status :redirect)
+       (`nil nil)
+       (url (setq *bibtex-fetch/doi-redirect* url))))
+    (`(,err ,data) (signal err data)))
+  (setq *bibtex-fetch/doi-waiting* nil))
+
+(defun bibtex-fetch/url-redirect (url)
+  "Determine where URL redirects to."
+  (setq *bibtex-fetch/doi-waiting* t)
+  (setq *bibtex-fetch/doi-redirect* url)
+  (url-retrieve url #'bibtex-fetch/url-redirect-callback nil t)
+  (while *bibtex-fetch/doi-waiting* (sleep-for 0.1))
+  *bibtex-fetch/doi-redirect*)
 
 (defun bibtex-fetch/remove-delimiters (s)
   "Remove the outer-most string delimiters around a BibTeX field."
@@ -357,7 +379,7 @@ arguments, but it may assume that `match-data' is set.")
 (defun bibtex-fetch-entry ()
   "Fetch the BibTeX entry for the URL on the system clipboard."
   (interactive)
-  (bibtex-fetch-entry-from-url (gui-get-selection)))
+  (bibtex-fetch-entry-from-url (gui-get-selection 'CLIPBOARD)))
 
 (defun bibtex-fetch/arxiv-document-url (id)
   "The URL of the document associated with arXiv identifier ID."
@@ -368,13 +390,30 @@ arguments, but it may assume that `match-data' is set.")
   (kill-buffer))
 
 (defun bibtex-fetch/arxiv-document (url dest)
-  "Fetch the document (PDF) corresponding to an arXiv URL and write it to DEST."
+  "Fetch to DEST the document (PDF) corresponding to an arXiv URL."
   (let* ((arxiv-id (match-string 1 url))
          (arxiv-pdf-url (bibtex-fetch/arxiv-document-url arxiv-id)))
-    (bibtex-fetch/url-retrieve arxiv-pdf-url #'bibtex-fetch/arxiv-document-callback (list dest))))
+    (url-copy-file arxiv-pdf-url dest t)))
+
+(defun bibtex-fetch/doi-document (url dest)
+  "Fetch to DEST the document (PDF) corresponding to a DOI URL."
+  (let ((provider-url (bibtex-fetch/url-redirect url)))
+    (bibtex-fetch-document-1 provider-url dest)))
+
+(defconst bibtex-fetch/aps-rx
+  (rx string-start "http" (opt "s") "://journals.aps.org")
+  "A regular expression to match APS journal URLs.")
+
+(defun bibtex-fetch/aps-document (url dest)
+  "Fetch to DEST the document (PDF) corresponding to an APS journal URL."
+  (let ((document-url (replace-regexp-in-string "/abstract/" "/pdf/" url)))
+    (gui-set-selection 'CLIPBOARD dest)
+    (browse-url document-url)))
 
 (defvar bibtex-fetch-document-handlers
-  (list (cons bibtex-fetch/arxiv-rx #'bibtex-fetch/arxiv-document))
+  (list (cons bibtex-fetch/arxiv-rx #'bibtex-fetch/arxiv-document)
+        (cons bibtex-fetch/doi-rx #'bibtex-fetch/doi-document)
+        (cons bibtex-fetch/aps-rx #'bibtex-fetch/aps-document))
   "The handlers used to fetch a document from a URL stored in a BibTeX entry.
 
 Each handler is a pair of a regular expression and a function that will be
@@ -399,6 +438,13 @@ Restore point when finished."
     (bibtex-beginning-of-entry)
     (bibtex-parse-entry)))
 
+(defun bibtex-fetch-document-1 (url dest)
+  "Fetch the document corresponding to the BibTeX entry at point."
+  (let* ((handlers bibtex-fetch-document-handlers) matched)
+    (while (and (not matched) handlers)
+      (setq matched
+            (bibtex-fetch/run-document-handler url dest (pop handlers))))))
+
 (defun bibtex-fetch-document ()
   "Fetch the document corresponding to the BibTeX entry at point."
   (interactive)
@@ -406,11 +452,8 @@ Restore point when finished."
          (url (bibtex-fetch/remove-delimiters
                (cdr (assoc "url" entry))))
          (key (cdr (assoc "=key=" entry)))
-         (dest (s-concat "doc/" key ".pdf"))
-         (handlers bibtex-fetch-document-handlers) matched)
-    (while (and (not matched) handlers)
-      (setq matched
-            (bibtex-fetch/run-document-handler url dest (pop handlers))))))
+         (dest (s-concat "doc/" key ".pdf")))
+    (bibtex-fetch-document-1 url dest)))
 
 (defun bibtex-capture ()
   (interactive)
