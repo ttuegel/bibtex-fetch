@@ -75,7 +75,8 @@ point.")
     (when (and type key)
       (insert "@" (s-downcase type) "{" key ",\n")
       (mapc #'bibtex-print-field entry)
-      (insert "}\n"))))
+      (insert "}\n")
+      entry)))
 
 (provide 'bibtex-print)
 ;;; bibtex-print.el ends here
