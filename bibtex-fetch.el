@@ -29,29 +29,6 @@
 (require 'select)
 (require 'xml)
 
-(defun bibtex-fetch/url-retrieve-callback (status callback cbargs)
-  (let ((ready t))
-    (progn
-      (while status
-        (pcase (pop status)
-          (`(:redirect ,redir)
-           (progn
-             (setq ready nil)
-             (bibtex-fetch/url-retrieve redir callback cbargs)))
-          (`(:error (,err ,data))
-           (progn
-             (setq ready nil)
-             (signal err data)))
-          (_ nil)))
-      (when ready (apply callback cbargs)))))
-
-(defun bibtex-fetch/url-retrieve (url callback &optional cbargs)
-  "Asynchronously retrieve URL and then CALLBACK.
-
-HTTP redirects are processed automatically. CALLBACK is not called if errors
-occur."
-  (url-retrieve url #'bibtex-fetch/url-retrieve-callback (list callback cbargs) t))
-
 (defvar *bibtex-fetch/doi-waiting* t
   "Stores waiting state for url retrieval.")
 
