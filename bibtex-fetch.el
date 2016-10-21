@@ -467,8 +467,8 @@ Restore point when finished."
 (defun bibtex-capture ()
   (interactive)
   (progn
-    (bibtex-fetch-entry)
-    (bibtex-fetch-document)))
+    (when (bibtex-fetch-entry)
+      (bibtex-fetch-document))))
 
 (defun bibtex-open-document ()
   "Open the document associated with the BibTeX entry at point."
