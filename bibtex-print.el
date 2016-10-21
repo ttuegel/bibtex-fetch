@@ -115,9 +115,10 @@ point.")
                   additional-names))))))
 
 (defun bibtex-print/year (entry)
-  "Return year field contents as a string obeying `bibtex-autokey-year-length'."
+  "Return year field of ENTRY."
   (let ((yearfield (bibtex-print/remove-delimiters
-                    (cdr (assoc "year" entry)))))
+                    (cdr (assoc "year" entry))))
+        (bibtex-autokey-year-length 2))
     (substring yearfield (max 0 (- (length yearfield)
                                    bibtex-autokey-year-length)))))
 
@@ -125,7 +126,32 @@ point.")
   "Get title of ENTRY up to a terminator."
   (let ((case-fold-search t)
         (titlestring (bibtex-print/remove-delimiters
-                      (cdr (assoc "title" entry)))))
+                      (cdr (assoc "title" entry))))
+        (bibtex-autokey-titleword-change-strings
+         '(("\\\\aa" . "a")
+           ("\\\\AA" . "A")
+           ("\\\"a\\|\\\\\\\"a\\|\\\\ae" . "ae")
+           ("\\\"A\\|\\\\\\\"A\\|\\\\AE" . "Ae")
+           ("\\\\i" . "i")
+           ("\\\\j" . "j")
+           ("\\\\l" . "l")
+           ("\\\\L" . "L")
+           ("\\\"o\\|\\\\\\\"o\\|\\\\o\\|\\\\oe" . "oe")
+           ("\\\"O\\|\\\\\\\"O\\|\\\\O\\|\\\\OE" . "Oe")
+           ("\\\"s\\|\\\\\\\"s\\|\\\\3" . "ss")
+           ("\\\"u\\|\\\\\\\"u" . "ue")
+           ("\\\"U\\|\\\\\\\"U" . "Ue")
+           ("\\\\`\\|\\\\'\\|\\\\\\^\\|\\\\~\\|\\\\=\\|\\\\\\.\\|\\\\u\\|\\\\v\\|\\\\H\\|\\\\t\\|\\\\c\\|\\\\d\\|\\\\b" . "")
+           ("[`'\"{}#]" . "")
+           ("\\\\-" . "")
+           ("\\\\?[ 	\n]+\\|~" . " ")))
+        (bibtex-autokey-title-terminators "[.!?:;]\\|--")
+        (bibtex-autokey-titleword-ignore '("A" "An" "On" "The" "Eine?" "Der"
+                                           "Die" "Das" "[^[:upper:]].*"
+                                           ".*[^[:upper:][:lower:]0-9].*"))
+        (bibtex-autokey-titlewords 5)
+        (bibtex-autokey-titlewords-stretch 2)
+        (bibtex-autokey-titleword-separator "_"))
     (progn
       (dolist (pattern bibtex-autokey-titleword-change-strings)
         (setq titlestring (replace-regexp-in-string (car pattern) (cdr pattern)
@@ -170,6 +196,9 @@ Use the author/editor, the year and the title field."
   (let* ((names (bibtex-print/names entry))
          (year (bibtex-print/year entry))
          (title (bibtex-print/title entry))
+         (bibtex-autokey-prefix-string "")
+         (bibtex-autokey-name-year-separator "")
+         (bibtex-autokey-year-title-separator "_")
          (autokey (concat bibtex-autokey-prefix-string
                           names
                           (unless (or (equal names "")
@@ -181,9 +210,7 @@ Use the author/editor, the year and the title field."
                                       (equal title ""))
                             bibtex-autokey-year-title-separator)
                           title)))
-    (if bibtex-autokey-before-presentation-function
-        (funcall bibtex-autokey-before-presentation-function autokey)
-      autokey)))
+    (replace-regexp-in-string ":" "" autokey)))
 
 (provide 'bibtex-print)
 ;;; bibtex-print.el ends here
