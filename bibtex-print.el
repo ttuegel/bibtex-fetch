@@ -78,5 +78,112 @@ point.")
       (insert "}\n")
       entry)))
 
+(defun bibtex-print/remove-delimiters (s)
+  "Remove the outer-most string delimiters around a BibTeX field."
+  (s-chop-suffix "\""
+  (s-chop-suffix "}"
+  (s-chop-prefix "{"
+  (s-chop-prefix "\"" s)))))
+
+(defun bibtex-print/names (entry)
+  "Get contents of the name field of ENTRY."
+  (let ((names (bibtex-print/remove-delimiters
+                (cdr (or (assoc "author" entry)
+                         (assoc "editor" entry))))))
+    ;; Some entries do not have a name field.
+    (progn
+      (dolist (pattern bibtex-autokey-name-change-strings)
+        (setq names (replace-regexp-in-string (car pattern) (cdr pattern)
+                                              names t)))
+      (if (string= "" names)
+          names
+        (let* ((case-fold-search t)
+               (name-list (mapcar 'bibtex-autokey-demangle-name
+                                  (split-string names "[ \t\n]+and[ \t\n]+")))
+               additional-names)
+          (unless (or (not (numberp bibtex-autokey-names))
+                      (<= (length name-list)
+                          (+ bibtex-autokey-names
+                             bibtex-autokey-names-stretch)))
+            ;; Take `bibtex-autokey-names' elements from beginning of name-list
+            (setq name-list (nreverse (nthcdr (- (length name-list)
+                                                 bibtex-autokey-names)
+                                              (nreverse name-list)))
+                  additional-names bibtex-autokey-additional-names))
+          (concat (mapconcat 'identity name-list
+                             bibtex-autokey-name-separator)
+                  additional-names))))))
+
+(defun bibtex-print/year (entry)
+  "Return year field contents as a string obeying `bibtex-autokey-year-length'."
+  (let ((yearfield (bibtex-print/remove-delimiters
+                    (cdr (assoc "year" entry)))))
+    (substring yearfield (max 0 (- (length yearfield)
+                                   bibtex-autokey-year-length)))))
+
+(defun bibtex-print/title (entry)
+  "Get title of ENTRY up to a terminator."
+  (let ((case-fold-search t)
+        (titlestring (bibtex-print/remove-delimiters
+                      (cdr (assoc "title" entry)))))
+    (progn
+      (dolist (pattern bibtex-autokey-titleword-change-strings)
+        (setq titlestring (replace-regexp-in-string (car pattern) (cdr pattern)
+                                                    titlestring t)))
+      ;; ignore everything past a terminator
+      (if (string-match bibtex-autokey-title-terminators titlestring)
+          (setq titlestring (substring titlestring 0 (match-beginning 0))))
+      ;; gather words from titlestring into a list.  Ignore
+      ;; specific words and use only a specific amount of words.
+      (let ((counter 0)
+            (ignore-re (concat "\\`\\(?:"
+                               (mapconcat 'identity
+                                          bibtex-autokey-titleword-ignore "\\|")
+                               "\\)\\'"))
+            titlewords titlewords-extra word)
+        (while (and (or (not (numberp bibtex-autokey-titlewords))
+                        (< counter (+ bibtex-autokey-titlewords
+                                      bibtex-autokey-titlewords-stretch)))
+                    (string-match "\\b\\w+" titlestring))
+          (setq word (match-string 0 titlestring)
+                titlestring (substring titlestring (match-end 0)))
+          ;; Ignore words matched by one of the elements of
+          ;; `bibtex-autokey-titleword-ignore'.  Case is significant.
+          (unless (let (case-fold-search)
+                    (string-match ignore-re word))
+            (setq counter (1+ counter))
+            (if (or (not (numberp bibtex-autokey-titlewords))
+                    (<= counter bibtex-autokey-titlewords))
+                (push word titlewords)
+              (push word titlewords-extra))))
+        ;; Obey `bibtex-autokey-titlewords-stretch':
+        ;; If by now we have processed all words in titlestring, we include
+        ;; titlewords-extra in titlewords.  Otherwise, we ignore titlewords-extra.
+        (unless (string-match "\\b\\w+" titlestring)
+          (setq titlewords (append titlewords-extra titlewords)))
+        (mapconcat 'bibtex-autokey-demangle-title (nreverse titlewords)
+                   bibtex-autokey-titleword-separator)))))
+
+(defun bibtex-print/generate-key (entry)
+  "Generate automatically a key for a BibTeX entry.
+Use the author/editor, the year and the title field."
+  (let* ((names (bibtex-print/names entry))
+         (year (bibtex-print/year entry))
+         (title (bibtex-print/title entry))
+         (autokey (concat bibtex-autokey-prefix-string
+                          names
+                          (unless (or (equal names "")
+                                      (equal year ""))
+                            bibtex-autokey-name-year-separator)
+                          year
+                          (unless (or (and (equal names "")
+                                           (equal year ""))
+                                      (equal title ""))
+                            bibtex-autokey-year-title-separator)
+                          title)))
+    (if bibtex-autokey-before-presentation-function
+        (funcall bibtex-autokey-before-presentation-function autokey)
+      autokey)))
+
 (provide 'bibtex-print)
 ;;; bibtex-print.el ends here

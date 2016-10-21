@@ -52,179 +52,6 @@
   (while *bibtex-fetch/doi-waiting* (sleep-for 0.1))
   *bibtex-fetch/doi-redirect*)
 
-(defun bibtex-fetch/remove-delimiters (s)
-  "Remove the outer-most string delimiters around a BibTeX field."
-  (s-chop-suffix "\""
-  (s-chop-suffix "}"
-  (s-chop-prefix "{"
-  (s-chop-prefix "\"" s)))))
-
-(defun bibtex-fetch/names (entry)
-  "Get contents of the name field of ENTRY.
-Do some modifications based on `bibtex-autokey-name-change-strings'.
-Return the names as a concatenated string obeying `bibtex-autokey-names'
-and `bibtex-autokey-names-stretch'."
-  (let ((names (bibtex-fetch/remove-delimiters
-                (cdr (or (assoc "author" entry)
-                         (assoc "editor" entry))))))
-    ;; Some entries do not have a name field.
-    (progn
-      (dolist (pattern bibtex-autokey-name-change-strings)
-        (setq names (replace-regexp-in-string (car pattern) (cdr pattern)
-                                              names t)))
-      (if (string= "" names)
-          names
-        (let* ((case-fold-search t)
-               (name-list (mapcar 'bibtex-autokey-demangle-name
-                                  (split-string names "[ \t\n]+and[ \t\n]+")))
-               additional-names)
-          (unless (or (not (numberp bibtex-autokey-names))
-                      (<= (length name-list)
-                          (+ bibtex-autokey-names
-                             bibtex-autokey-names-stretch)))
-            ;; Take `bibtex-autokey-names' elements from beginning of name-list
-            (setq name-list (nreverse (nthcdr (- (length name-list)
-                                                 bibtex-autokey-names)
-                                              (nreverse name-list)))
-                  additional-names bibtex-autokey-additional-names))
-          (concat (mapconcat 'identity name-list
-                             bibtex-autokey-name-separator)
-                  additional-names))))))
-
-(defun bibtex-fetch/year (entry)
-  "Return year field contents as a string obeying `bibtex-autokey-year-length'."
-  (let ((yearfield (bibtex-fetch/remove-delimiters
-                    (cdr (assoc "year" entry)))))
-    (substring yearfield (max 0 (- (length yearfield)
-                                   bibtex-autokey-year-length)))))
-
-(defun bibtex-fetch/title (entry)
-  "Get title field contents up to a terminator.
-Return the result as a string"
-  (let ((case-fold-search t)
-        (titlestring (bibtex-fetch/remove-delimiters
-                      (cdr (assoc "title" entry)))))
-    (progn
-      (dolist (pattern bibtex-autokey-titleword-change-strings)
-        (setq titlestring (replace-regexp-in-string (car pattern) (cdr pattern)
-                                                    titlestring t)))
-      ;; ignore everything past a terminator
-      (if (string-match bibtex-autokey-title-terminators titlestring)
-          (setq titlestring (substring titlestring 0 (match-beginning 0))))
-      ;; gather words from titlestring into a list.  Ignore
-      ;; specific words and use only a specific amount of words.
-      (let ((counter 0)
-            (ignore-re (concat "\\`\\(?:"
-                               (mapconcat 'identity
-                                          bibtex-autokey-titleword-ignore "\\|")
-                               "\\)\\'"))
-            titlewords titlewords-extra word)
-        (while (and (or (not (numberp bibtex-autokey-titlewords))
-                        (< counter (+ bibtex-autokey-titlewords
-                                      bibtex-autokey-titlewords-stretch)))
-                    (string-match "\\b\\w+" titlestring))
-          (setq word (match-string 0 titlestring)
-                titlestring (substring titlestring (match-end 0)))
-          ;; Ignore words matched by one of the elements of
-          ;; `bibtex-autokey-titleword-ignore'.  Case is significant.
-          (unless (let (case-fold-search)
-                    (string-match ignore-re word))
-            (setq counter (1+ counter))
-            (if (or (not (numberp bibtex-autokey-titlewords))
-                    (<= counter bibtex-autokey-titlewords))
-                (push word titlewords)
-              (push word titlewords-extra))))
-        ;; Obey `bibtex-autokey-titlewords-stretch':
-        ;; If by now we have processed all words in titlestring, we include
-        ;; titlewords-extra in titlewords.  Otherwise, we ignore titlewords-extra.
-        (unless (string-match "\\b\\w+" titlestring)
-          (setq titlewords (append titlewords-extra titlewords)))
-        (mapconcat 'bibtex-autokey-demangle-title (nreverse titlewords)
-                   bibtex-autokey-titleword-separator)))))
-
-(defun bibtex-fetch/generate-key (entry)
-  "Generate automatically a key for a BibTeX entry.
-Use the author/editor, the year and the title field.
-The algorithm works as follows.
-
-The name part:
- 1. Use the author or editor field to generate the name part of the key.
-    Expand BibTeX strings if `bibtex-autokey-expand-strings' is non-nil.
- 2. Change the content of the name field according to
-    `bibtex-autokey-name-change-strings' (see there for further detail).
- 3. Use the first `bibtex-autokey-names' names in the name field.  If there
-    are up to `bibtex-autokey-names' + `bibtex-autokey-names-stretch' names,
-    use all names.
- 4. Use only the last names to form the name part.  From these last names,
-    take at least `bibtex-autokey-name-length' characters (truncate only
-    after a consonant or at a word end).
- 5. Convert all last names using the function
-    `bibtex-autokey-name-case-convert-function'.
- 6. Build the name part of the key by concatenating all abbreviated last
-    names with the string `bibtex-autokey-name-separator' between any two.
-    If there are more names in the name field than names used in the name
-    part, append the string `bibtex-autokey-additional-names'.
-
-The year part:
- 1. Build the year part of the key by truncating the content of the year
-    field to the rightmost `bibtex-autokey-year-length' digits (useful
-    values are 2 and 4).
- 2. If the year field (or any other field required to generate the key)
-    is absent, but the entry has a valid crossref field and
-    `bibtex-autokey-use-crossref' is non-nil, use the field of the
-    crossreferenced entry instead.
-
-The title part
- 1. Change the content of the title field according to
-    `bibtex-autokey-titleword-change-strings' (see there for further detail).
- 2. Truncate the title before the first match of
-    `bibtex-autokey-title-terminators' and delete those words which appear
-    in `bibtex-autokey-titleword-ignore'.  Build the title part using the
-    first `bibtex-autokey-titlewords' words from this truncated title.
-    If the truncated title ends after up to `bibtex-autokey-titlewords' +
-    `bibtex-autokey-titlewords-stretch' words, use all words from the
-    truncated title.
- 3. For every title word that appears in `bibtex-autokey-titleword-abbrevs'
-    use the corresponding abbreviation (see documentation of this variable
-    for further detail).
- 4. From every title word not generated by an abbreviation, take at least
-    `bibtex-autokey-titleword-length' characters (truncate only after
-    a consonant or at a word end).
- 5. Convert all title words using the function
-    `bibtex-autokey-titleword-case-convert-function'.
- 6. Build the title part by concatenating all abbreviated title words with
-    the string `bibtex-autokey-titleword-separator' between any two.
-
-Concatenate the key:
- 1. Concatenate `bibtex-autokey-prefix-string', the name part, the year
-    part and the title part.  If the name part and the year part are both
-    non-empty insert `bibtex-autokey-name-year-separator' between the two.
-    If the title part and the year (or name) part are non-empty, insert
-    `bibtex-autokey-year-title-separator' between the two.
- 2. If `bibtex-autokey-before-presentation-function' is non-nil, it must be
-    a function taking one argument.  Call this function with the generated
-    key as the argument.  Use the return value of this function (a string)
-    as the key.
- 3. If `bibtex-autokey-edit-before-use' is non-nil, present the key in the
-    minibuffer to the user for editing.  Insert the key given by the user."
-  (let* ((names (bibtex-fetch/names entry))
-         (year (bibtex-fetch/year entry))
-         (title (bibtex-fetch/title entry))
-         (autokey (concat bibtex-autokey-prefix-string
-                          names
-                          (unless (or (equal names "")
-                                      (equal year ""))
-                            bibtex-autokey-name-year-separator)
-                          year
-                          (unless (or (and (equal names "")
-                                           (equal year ""))
-                                      (equal title ""))
-                            bibtex-autokey-year-title-separator)
-                          title)))
-    (if bibtex-autokey-before-presentation-function
-        (funcall bibtex-autokey-before-presentation-function autokey)
-      autokey)))
-
 (defconst bibtex-fetch/arxiv-rx
   (rx string-start
       "http" (opt "s") "://arxiv.org/abs/"
@@ -293,7 +120,7 @@ Concatenate the key:
                         (cons "archiveprefix" "{arXiv}")
                         (cons "eprint" (s-concat "{" arxiv-id "}"))
                         (cons "url" (s-concat "{" url "}")))))
-        (add-to-list 'bib (cons "=key=" (bibtex-fetch/generate-key bib)))))))
+        (add-to-list 'bib (cons "=key=" (bibtex-print/generate-key bib)))))))
 
 (defun bibtex-fetch/retrieve-bibtex (url)
   "Retrieve a BibTeX entry from URL."
@@ -326,7 +153,7 @@ Concatenate the key:
               (bibtex-fetch/retrieve-bibtex
                (bibtex-fetch/crossref-doi-query-url doi))))
          (key-cell (assoc "=key=" entry))
-         (new-key (bibtex-fetch/generate-key entry)))
+         (new-key (bibtex-print/generate-key entry)))
     (setcdr key-cell new-key)
     entry))
 
@@ -334,7 +161,7 @@ Concatenate the key:
   "Fetch the BibTeX info from a URL."
   (let* ((entry (bibtex-fetch/retrieve-bibtex url))
          (key-cell (assoc "=key=" entry))
-         (new-key (bibtex-fetch/generate-key entry)))
+         (new-key (bibtex-print/generate-key entry)))
     (setcdr key-cell new-key)
     entry))
 
@@ -435,7 +262,7 @@ Restore point when finished."
   "Fetch the document corresponding to the BibTeX entry at point."
   (interactive)
   (let* ((entry (bibtex-fetch/parse-entry))
-         (url (bibtex-fetch/remove-delimiters
+         (url (bibtex-print/remove-delimiters
                (cdr (assoc "url" entry))))
          (key (cdr (assoc "=key=" entry)))
          (dest (s-concat "doc/" key ".pdf")))
@@ -461,7 +288,7 @@ Restore point when finished."
   "Open the URL associated with the BibTeX entry at point."
   (interactive
    (let* ((entry (bibtex-fetch/parse-entry))
-          (url (bibtex-fetch/remove-delimiters
+          (url (bibtex-print/remove-delimiters
                 (cdr (assoc "url" entry)))))
      (if url
          (browse-url url)
