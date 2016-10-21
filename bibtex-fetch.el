@@ -353,9 +353,18 @@ Concatenate the key:
     (setcdr key-cell new-key)
     entry))
 
+(defun bibtex-fetch/url-entry (url)
+  "Fetch the BibTeX info from a URL."
+  (let* ((entry (bibtex-fetch/retrieve-bibtex url))
+         (key-cell (assoc "=key=" entry))
+         (new-key (bibtex-fetch/generate-key entry)))
+    (setcdr key-cell new-key)
+    entry))
+
 (defvar bibtex-fetch-entry-handlers
   (list (cons bibtex-fetch/arxiv-rx #'bibtex-fetch/arxiv-entry)
-        (cons bibtex-fetch/doi-rx #'bibtex-fetch/doi-entry))
+        (cons bibtex-fetch/doi-rx #'bibtex-fetch/doi-entry)
+        (cons bibtex-fetch/aps-rx #'bibtex-fetch/url-entry))
   "The list of handlers to use to fetch a BibTeX entry from a URL.
 
 Each handler is a pair of a regular expression and a function that will be
