@@ -24,128 +24,41 @@
 ;;; Code:
 
 (require 'bibtex)
+(require 'bibtex-print)
 (require 'helm-utils)
 (require 'rx)
 (require 'select)
 (require 'xml)
 
+(require 'bibtex-fetch-acs)
+(require 'bibtex-fetch-aps)
 (require 'bibtex-fetch-arxiv)
-
-(defvar *bibtex-fetch/doi-waiting* t
-  "Stores waiting state for url retrieval.")
-
-(defvar *bibtex-fetch/doi-redirect* nil
-  "Stores redirect url from a callback function.")
-
-(defun bibtex-fetch/url-redirect-callback (status)
-  (pcase (plist-get status :error)
-    (`nil
-     (pcase (plist-get status :redirect)
-       (`nil nil)
-       (url (setq *bibtex-fetch/doi-redirect* url))))
-    (`(,err ,data) (signal err data)))
-  (setq *bibtex-fetch/doi-waiting* nil))
-
-(defun bibtex-fetch/url-redirect (url)
-  "Determine where URL redirects to."
-  (setq *bibtex-fetch/doi-waiting* t)
-  (setq *bibtex-fetch/doi-redirect* url)
-  (url-retrieve url #'bibtex-fetch/url-redirect-callback nil t)
-  (while *bibtex-fetch/doi-waiting* (sleep-for 0.1))
-  *bibtex-fetch/doi-redirect*)
-
-(defun bibtex-fetch/retrieve-bibtex (url)
-  "Retrieve a BibTeX entry from URL."
-  (let ((url-mime-accept-string "text/bibliography;style=bibtex, application/x-bibtex"))
-    (with-current-buffer
-        (url-retrieve-synchronously url t)
-      (goto-char (point-min))
-      (save-match-data (re-search-forward bibtex-entry-head))
-      (bibtex-fetch/parse-entry))))
-
-(defconst bibtex-fetch/doi-rx
-  (rx string-start
-      "http" (opt "s") "://" (opt "dx.") "doi.org/"
-      (submatch (one-or-more (any "A-Z" "a-z" "0-9" "./"))))
-  "A regular expression to match the DOI from a URL.")
-
-(defun bibtex-fetch/doi-query-url (doi)
-  (s-concat "https://doi.org/" doi))
-
-(defun bibtex-fetch/crossref-doi-query-url (doi)
-  (format
-   "http://crosscite.org/citeproc/format?doi=%s&style=bibtex&lang=en-US"
-   doi))
-
-(defun bibtex-fetch/doi-entry (url)
-  "Fetch the BibTeX info from an DOI URL."
-  (let* ((doi (match-string 1 url))
-         (entry
-          (or (bibtex-fetch/retrieve-bibtex (bibtex-fetch/doi-query-url doi))
-              (bibtex-fetch/retrieve-bibtex
-               (bibtex-fetch/crossref-doi-query-url doi))))
-         (key-cell (assoc "=key=" entry))
-         (new-key (bibtex-print/generate-key entry)))
-    (setcdr key-cell new-key)
-    entry))
-
-(defun bibtex-fetch/url-entry (url)
-  "Fetch the BibTeX info from a URL."
-  (let* ((entry (bibtex-fetch/retrieve-bibtex url))
-         (key-cell (assoc "=key=" entry))
-         (new-key (bibtex-print/generate-key entry)))
-    (setcdr key-cell new-key)
-    entry))
-
-(defun bibtex-fetch/doi-document (url dest)
-  "Fetch to DEST the document (PDF) corresponding to a DOI URL."
-  (let ((provider-url (bibtex-fetch/url-redirect url)))
-    (bibtex-fetch-document-1 provider-url dest)))
-
-(defconst bibtex-fetch/aps-rx
-  (rx string-start "http" (opt "s") "://journals.aps.org")
-  "A regular expression to match APS journal URLs.")
-
-(defun bibtex-fetch/aps-document (url dest)
-  "Fetch to DEST the document (PDF) corresponding to an APS journal URL."
-  (let ((document-url (replace-regexp-in-string "/abstract/" "/pdf/" url)))
-    (gui-set-selection 'CLIPBOARD dest)
-    (browse-url document-url)))
-
-(defconst bibtex-fetch/acs-rx
-  (rx string-start "http" (opt "s") "://pubs.acs.org/doi/abs/"
-      (submatch (one-or-more (any "A-Z" "a-z" "0-9" "./"))))
-  "A regular expression to match ACS journal URLs.")
-
-(defun bibtex-fetch/acs-entry (url)
-  (let* ((doi (match-string 1 url))
-         (entry (bibtex-fetch/retrieve-bibtex
-                 (s-concat
-                  "https://pubs.acs.org/action/downloadCitation"
-                  "?direct=true"
-                  "&doi=" (url-encode-url doi)
-                  "&format=bibtex"
-                  "&include=abs"
-                  "&submit=Download+Citation"))))
-    (setcdr (assoc "=key=" entry) (bibtex-print/generate-key entry))
-    (setcdr (assoc "abstract" entry) nil)
-    entry))
-
-(defun bibtex-fetch/acs-document (url dest)
-  "Fetch to DEST the document (PDF) corresponding to an APS journal URL."
-  (let ((document-url (replace-regexp-in-string "/abs/" "/pdf/" url)))
-    (url-copy-file document-url dest t)))
+(require 'bibtex-fetch-doi)
+(require 'bibtex-fetch-springer)
 
 (defvar bibtex-fetch-entry-handlers
   (list (cons bibtex-fetch/arxiv-rx #'bibtex-fetch/arxiv-entry)
         (cons bibtex-fetch/doi-rx #'bibtex-fetch/doi-entry)
-        (cons bibtex-fetch/aps-rx #'bibtex-fetch/url-entry)
-        (cons bibtex-fetch/acs-rx #'bibtex-fetch/acs-entry))
+        (cons bibtex-fetch/aps-rx #'bibtex-fetch/aps-entry)
+        (cons bibtex-fetch/acs-rx #'bibtex-fetch/acs-entry)
+        (cons bibtex-fetch/springer-rx #'bibtex-fetch/springer-entry))
   "The list of handlers to use to fetch a BibTeX entry from a URL.
 
 Each handler is a pair of a regular expression and a function that will be
 called when the URL matches the regular expression. The function takes no
 arguments, but it may assume that `match-data' is set.")
+
+(defvar bibtex-fetch-document-handlers
+  (list (cons bibtex-fetch/arxiv-rx #'bibtex-fetch/arxiv-document)
+        (cons bibtex-fetch/doi-rx #'bibtex-fetch/doi-document)
+        (cons bibtex-fetch/aps-rx #'bibtex-fetch/aps-document)
+        (cons bibtex-fetch/acs-rx #'bibtex-fetch/acs-document)
+        (cons bibtex-fetch/springer-rx #'bibtex-fetch/springer-document))
+  "The handlers used to fetch a document from a URL stored in a BibTeX entry.
+
+Each handler is a pair of a regular expression and a function that will be
+called when the URL matches the regular expression. The function takes two
+arguments, the URL and the destination for the file.")
 
 (defun bibtex-fetch/run-entry-handler (url handler)
   (let* ((handler-rx (car handler))
@@ -166,17 +79,6 @@ arguments, but it may assume that `match-data' is set.")
   (interactive)
   (bibtex-fetch-entry-from-url (gui-get-selection 'CLIPBOARD)))
 
-(defvar bibtex-fetch-document-handlers
-  (list (cons bibtex-fetch/arxiv-rx #'bibtex-fetch/arxiv-document)
-        (cons bibtex-fetch/doi-rx #'bibtex-fetch/doi-document)
-        (cons bibtex-fetch/aps-rx #'bibtex-fetch/aps-document)
-        (cons bibtex-fetch/acs-rx #'bibtex-fetch/acs-document))
-  "The handlers used to fetch a document from a URL stored in a BibTeX entry.
-
-Each handler is a pair of a regular expression and a function that will be
-called when the URL matches the regular expression. The function takes two
-arguments, the URL and the destination for the file.")
-
 (defun bibtex-fetch/run-document-handler (url dest handler)
   (let* ((handler-rx (car handler))
          (handler-fun (cdr handler))
@@ -186,17 +88,8 @@ arguments, the URL and the destination for the file.")
       (funcall handler-fun url final-dest)
       t)))
 
-(defun bibtex-fetch/parse-entry ()
-  "Parse the BibTeX entry at point.
-
-If point is inside or at the beginning of an entry, parse and return that entry.
-Restore point when finished."
-  (save-excursion
-    (bibtex-beginning-of-entry)
-    (bibtex-parse-entry)))
-
 (defun bibtex-fetch-document-1 (url dest)
-  "Fetch the document corresponding to the BibTeX entry at point."
+  "Fetch the document corresponding to URL into DEST."
   (let* ((handlers bibtex-fetch-document-handlers) matched)
     (while (and (not matched) handlers)
       (setq matched
