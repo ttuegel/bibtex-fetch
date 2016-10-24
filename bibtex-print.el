@@ -63,7 +63,7 @@ point.")
 
 (defun bibtex-print-field (field)
   (let* ((handlers bibtex-print-field-handlers) matched)
-    (progn
+    (when (cdr field)
       (while (and (not matched) handlers)
         (setq matched (bibtex-print/run-field-handler field (pop handlers))))
       (unless matched (bibtex-print-default-field field)))))
