@@ -28,7 +28,11 @@
 
 (defun bibtex-print/texify-whitespace (string)
   "Replace extended whitespace as TeX would."
-  (replace-regexp-in-string "[ \n\t]+" " " string))
+  (replace-regexp-in-string
+   "^{[ \n\t]+" "{"
+   (replace-regexp-in-string
+    "[ \n\t]+}$" "}"
+    (replace-regexp-in-string "[ \n\t]+" " " string))))
 
 (defconst bibtex-print/header-fields-rx
   (rx "=" (or "type" "key") "="))
@@ -49,7 +53,8 @@ point.")
   (let ((name (car field))
         (value (cdr field)))
     (insert
-     "  " (s-downcase name) " = " (bibtex-print/texify-whitespace value) ",\n")))
+     "  " (s-downcase name)
+     " = " (s-trim (bibtex-print/texify-whitespace value)) ",\n")))
 
 (defun bibtex-print/run-field-handler (field handler)
   (let* ((handler-rx (car handler))
