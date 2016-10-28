@@ -34,6 +34,8 @@
 (require 'bibtex-fetch-aps)
 (require 'bibtex-fetch-arxiv)
 (require 'bibtex-fetch-doi)
+(require 'bibtex-fetch-iop)
+(require 'bibtex-fetch-sciencedirect)
 (require 'bibtex-fetch-springer)
 
 (defvar bibtex-fetch-entry-handlers
@@ -41,6 +43,8 @@
         (cons bibtex-fetch/doi-rx #'bibtex-fetch/doi-entry)
         (cons bibtex-fetch/aps-rx #'bibtex-fetch/aps-entry)
         (cons bibtex-fetch/acs-rx #'bibtex-fetch/acs-entry)
+        (cons bibtex-fetch/iop-rx #'bibtex-fetch/iop-entry)
+        (cons bibtex-fetch/sciencedirect-rx #'bibtex-fetch/sciencedirect-entry)
         (cons bibtex-fetch/springer-rx #'bibtex-fetch/springer-entry))
   "The list of handlers to use to fetch a BibTeX entry from a URL.
 
@@ -53,6 +57,7 @@ arguments, but it may assume that `match-data' is set.")
         (cons bibtex-fetch/doi-rx #'bibtex-fetch/doi-document)
         (cons bibtex-fetch/aps-rx #'bibtex-fetch/aps-document)
         (cons bibtex-fetch/acs-rx #'bibtex-fetch/acs-document)
+        (cons bibtex-fetch/iop-document-rx #'bibtex-fetch/iop-document)
         (cons bibtex-fetch/springer-rx #'bibtex-fetch/springer-document))
   "The handlers used to fetch a document from a URL stored in a BibTeX entry.
 
@@ -131,9 +136,18 @@ arguments, the URL and the destination for the file.")
          (browse-url url)
        (message "No URL for this entry.")))))
 
+(defun bibtex-associate ()
+  "Copy the associated document path to the clipboard."
+  (interactive)
+  (let* ((entry (bibtex-fetch/parse-entry))
+         (key (cdr (assoc "=key=" entry)))
+         (document (expand-file-name (s-concat "doc/" key ".pdf"))))
+    (gui-set-selection 'CLIPBOARD document)))
+
 (bind-key "C-c o" #'bibtex-open-document bibtex-mode-map)
 (bind-key "C-c M-o" #'bibtex-open-url bibtex-mode-map)
 (bind-key "C-c C-c" #'bibtex-capture bibtex-mode-map)
+(bind-key "C-c a" #'bibtex-associate bibtex-mode-map)
 
 (provide 'bibtex-fetch)
 ;;; bibtex-fetch.el ends here

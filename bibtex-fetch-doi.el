@@ -48,14 +48,18 @@
   (while *bibtex-fetch/doi-waiting* (sleep-for 0.1))
   *bibtex-fetch/doi-redirect*)
 
+(defun bibtex-fetch/retrieve-bibtex-1 (url)
+  "Retrieve a BibTeX entry from URL."
+  (with-current-buffer
+      (url-retrieve-synchronously url t)
+    (goto-char (point-min))
+    (save-match-data (re-search-forward bibtex-entry-head))
+    (bibtex-fetch/parse-entry)))
+
 (defun bibtex-fetch/retrieve-bibtex (url)
   "Retrieve a BibTeX entry from URL."
   (let ((url-mime-accept-string "text/bibliography;style=bibtex, application/x-bibtex"))
-    (with-current-buffer
-        (url-retrieve-synchronously url t)
-      (goto-char (point-min))
-      (save-match-data (re-search-forward bibtex-entry-head))
-      (bibtex-fetch/parse-entry))))
+    (bibtex-fetch/retrieve-bibtex-1 url)))
 
 (defconst bibtex-fetch/doi-rx
   (rx string-start
