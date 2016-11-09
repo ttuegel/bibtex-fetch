@@ -31,7 +31,7 @@
 (defconst bibtex-fetch/arxiv-rx
   (rx string-start
       "http" (opt "s") "://arxiv.org/abs/"
-      (submatch (one-or-more (any "A-Z" "a-z" "0-9" "./"))))
+      (submatch (one-or-more (any "A-Z" "a-z" "0-9" "./" ?-))))
   "A regular expression to match the arXiv identifier from a URL.")
 
 (defun bibtex-fetch/arxiv-query-url (arxiv-id)
