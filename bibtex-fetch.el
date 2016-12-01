@@ -47,7 +47,8 @@
         (cons bibtex-fetch/iop-rx #'bibtex-fetch/iop-entry)
         (cons bibtex-fetch/sciencedirect-rx #'bibtex-fetch/sciencedirect-entry)
         (cons bibtex-fetch/springer-rx #'bibtex-fetch/springer-entry)
-        (cons bibtex-fetch/jps-rx #'bibtex-fetch/jps-entry))
+        (cons bibtex-fetch/jps-rx #'bibtex-fetch/jps-entry)
+        (cons bibtex-fetch/nature-rx #'bibtex-fetch/nature-entry))
   "The list of handlers to use to fetch a BibTeX entry from a URL.
 
 Each handler is a pair of a regular expression and a function that will be
@@ -61,7 +62,8 @@ arguments, but it may assume that `match-data' is set.")
         (cons bibtex-fetch/acs-rx #'bibtex-fetch/acs-document)
         (cons bibtex-fetch/iop-document-rx #'bibtex-fetch/iop-document)
         (cons bibtex-fetch/springer-rx #'bibtex-fetch/springer-document)
-        (cons bibtex-fetch/jps-rx #'bibtex-fetch/jps-document))
+        (cons bibtex-fetch/jps-rx #'bibtex-fetch/jps-document)
+        (cons bibtex-fetch/nature-rx #'bibtex-fetch/nature-document))
   "The handlers used to fetch a document from a URL stored in a BibTeX entry.
 
 Each handler is a pair of a regular expression and a function that will be
