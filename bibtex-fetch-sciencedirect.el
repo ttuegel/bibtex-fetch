@@ -41,7 +41,6 @@
 
 (defun bibtex-fetch/sciencedirect-entry (url)
   "Fetch the BibTeX info from an ScienceDirect URL."
-  (print "bibtex-fetch/sciencedirect-entry")
   (bibtex-fetch/doi-entry-1
    (with-current-buffer (url-retrieve-synchronously url t)
      (goto-char (point-min))
