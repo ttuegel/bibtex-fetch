@@ -44,6 +44,7 @@
   "Fetch the BibTeX info from an APS URL."
   (let ((entry (bibtex-fetch/retrieve-bibtex-1
                 (bibtex-fetch/aps-entry-url url))))
+    (unless entry (error "Unable to fetch entry"))
     (setcdr (assoc "=key=" entry) (bibtex-print/generate-key entry))
     entry))
 
