@@ -39,6 +39,7 @@
 (defun bibtex-fetch/ris-entry (url)
   "Fetch an RIS entry and reformat as BibTeX."
   (let* ((entry (bibtex-fetch/ris-entry-1 url t)))
+    (unless entry (error "Unable to fetch entry"))
     (setcdr (assoc "=key=" entry) (bibtex-print/generate-key entry))
     entry))
 
