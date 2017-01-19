@@ -39,7 +39,6 @@
   "Fetch the BibTeX info from a Nature URL."
   (let* ((article-id (match-string 1 url))
          (entry-url (bibtex-fetch/nature-entry-url article-id)))
-    (message entry-url)
     (bibtex-fetch/ris-entry entry-url)))
 
 (defun bibtex-fetch/nature-document-url (article-id)
