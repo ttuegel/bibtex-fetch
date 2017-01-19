@@ -42,8 +42,9 @@
   (bibtex-fetch/doi-entry-1
    (with-current-buffer (url-retrieve-synchronously url t)
      (goto-char (point-min))
-     (when (re-search-forward bibtex-fetch/sciencedirect-doi-rx (point-max) t)
-       (match-string 1)))))
+     (if (re-search-forward bibtex-fetch/sciencedirect-doi-rx (point-max) t)
+         (match-string 1)
+       (error "Could not find a DOI")))))
 
 (provide 'bibtex-fetch-sciencedirect)
 ;;; bibtex-fetch-sciencedirect.el ends here
