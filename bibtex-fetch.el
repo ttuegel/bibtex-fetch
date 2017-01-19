@@ -83,10 +83,12 @@ arguments, the URL and the destination for the file.")
 (defun bibtex-fetch-entry-from-url (url)
   "Fetch the BibTeX entry for the document at URL."
   (interactive "MURL: ")
-  (let* ((handlers bibtex-fetch-entry-handlers) handler entry)
-    (while (and (not entry) (setq handler (pop handlers)))
-      (setq entry (bibtex-fetch/run-entry-handler url handler)))
-    (bibtex-print-entry entry)))
+  (let* ((handlers bibtex-fetch-entry-handlers) entry)
+    (while (and (not entry) handlers)
+      (setq entry (bibtex-fetch/run-entry-handler url (pop handlers))))
+    (if (not entry)
+        (error "No handler found to fetch entry")
+      (bibtex-print-entry entry))))
 
 (defun bibtex-fetch-entry ()
   "Fetch the BibTeX entry for the URL on the system clipboard."
