@@ -107,7 +107,9 @@ arguments, the URL and the destination for the file.")
   (let* ((handlers bibtex-fetch-document-handlers) matched)
     (while (and (not matched) handlers)
       (setq matched
-            (bibtex-fetch/run-document-handler url dest (pop handlers))))))
+            (bibtex-fetch/run-document-handler url dest (pop handlers))))
+    (when (not matched)
+      (error "No handler found to fetch document"))))
 
 (defun bibtex-fetch-document ()
   "Fetch the document corresponding to the BibTeX entry at point."
