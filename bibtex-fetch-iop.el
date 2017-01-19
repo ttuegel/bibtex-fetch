@@ -45,6 +45,7 @@
   (let* ((article-id (match-string 1 url))
          (entry-url (bibtex-fetch/iop-entry-url article-id))
          (entry (bibtex-fetch/retrieve-bibtex-1 entry-url)))
+    (unless entry (error "Unable to fetch entry"))
     (setcdr (assoc "=key=" entry) (bibtex-print/generate-key entry))
     (setcdr (assoc "abstract" entry) nil)
     entry))
