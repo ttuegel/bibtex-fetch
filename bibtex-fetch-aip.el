@@ -40,6 +40,7 @@
 (defun bibtex-fetch/aip-entry (url)
   (let* ((doi (match-string 2 url))
          (entry (bibtex-fetch/doi-entry-1 doi)))
+    (unless entry (error "Unable to fetch entry"))
     (setcdr (assoc "=key=" entry) (bibtex-print/generate-key entry))
     entry))
 
