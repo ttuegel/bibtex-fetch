@@ -33,10 +33,8 @@
       (one-or-more (any "A-Z" "a-z" "0-9")))
   "A regular expression to match SciencDirect journal URLs.")
 
-(defconst bibtex-fetch/sciencedirect-doi-rx
-  (rx "SDM.doi = '"
-      (submatch (one-or-more (any "A-Z" "a-z" "0-9" "./")))
-      "';")
+(defvar bibtex-fetch/sciencedirect-doi-rx
+  (rx "SDM.doi = '" (submatch (one-or-more not-newline)) "';")
   "A regular expression to extract the DOI from a ScienceDirect landing page.")
 
 (defun bibtex-fetch/sciencedirect-entry (url)
