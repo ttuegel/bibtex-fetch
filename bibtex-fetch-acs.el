@@ -43,6 +43,7 @@
                   "&format=bibtex"
                   "&include=abs"
                   "&submit=Download+Citation"))))
+    (unless entry (error "Unable to fetch entry"))
     (setcdr (assoc "=key=" entry) (bibtex-print/generate-key entry))
     (setcdr (assoc "abstract" entry) nil)
     entry))
