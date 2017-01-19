@@ -137,7 +137,7 @@ arguments, the URL and the destination for the file.")
          (document (expand-file-name (s-concat "doc/" key ".pdf"))))
     (if (file-readable-p document)
         (helm-open-file-with-default-tool document)
-      (message "Could not open %s" document))))
+      (error "Could not open %s" document))))
 
 (defun bibtex-open-url ()
   "Open the URL associated with the BibTeX entry at point."
