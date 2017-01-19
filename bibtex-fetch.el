@@ -147,7 +147,7 @@ arguments, the URL and the destination for the file.")
                 (cdr (assoc "url" entry)))))
      (if url
          (browse-url url)
-       (message "No URL for this entry.")))))
+       (error "No URL for this entry")))))
 
 (defun bibtex-associate ()
   "Copy the associated document path to the clipboard."
