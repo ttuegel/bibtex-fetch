@@ -84,6 +84,7 @@
                (bibtex-fetch/crossref-doi-query-url doi))))
          (key-cell (assoc "=key=" entry))
          (new-key (bibtex-print/generate-key entry)))
+    (unless entry (error "Unable to fetch entry"))
     (setcdr key-cell new-key)
     entry))
 
