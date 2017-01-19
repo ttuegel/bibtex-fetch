@@ -34,9 +34,18 @@
       (submatch (one-or-more (any "A-Z" "a-z" "0-9" "./"))))
   "A regular expression to match APS journal URLs.")
 
+(defun bibtex-fetch/aps-entry-url (abstract-url)
+  (s-concat
+   (replace-regexp-in-string "/abstract/" "/export/" abstract-url)
+   "?type=bibtex"
+   "&download=true"))
+
 (defun bibtex-fetch/aps-entry (url)
   "Fetch the BibTeX info from an APS URL."
-  (bibtex-fetch/doi-entry-1 (match-string 1 url)))
+  (let ((entry (bibtex-fetch/retrieve-bibtex-1
+                (bibtex-fetch/aps-entry-url url))))
+    (setcdr (assoc "=key=" entry) (bibtex-print/generate-key entry))
+    entry))
 
 (defun bibtex-fetch/aps-document (url dest)
   "Fetch to DEST the document (PDF) corresponding to an APS journal URL."
