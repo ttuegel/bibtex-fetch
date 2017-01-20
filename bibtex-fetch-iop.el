@@ -29,8 +29,9 @@
 (defconst bibtex-fetch/iop-rx
   (rx string-start
       "http" (opt "s") "://iopscience.iop.org/article/"
-      (one-or-more (any "0-9" ".")) "/"
-      (submatch (one-or-more (any "0-9" "./" ?-))))
+      (one-or-more (not (any ?/))) ;; journal id
+      "/"
+      (submatch (one-or-more not-newline)))
   "A regular expression to match IOP URLs.")
 
 (defun bibtex-fetch/iop-entry-url (article-id)
@@ -40,10 +41,21 @@
             "&exportType=abs"
             "&navsubmit=Export%2Babstract"))
 
+(defconst bibtex-fetch/iop-entry-url-rx
+  (rx "href=\"" (submatch (one-or-more (not (any ?\")))) ?\"
+      " class=\"btn btn-primary wd-btn-cit-abs-bib\""))
+
+(defun bibtex-fetch/iop-entry-url (url)
+  (with-current-buffer (url-retrieve-synchronously url t)
+    (goto-char (point-min))
+    (re-search-forward bibtex-fetch/iop-entry-url-rx (point-max) t)
+    (if (= (point-min) (point))
+        (error "Could not extract BibTeX entry URL from page")
+      (s-concat "http://iopscience.iop.org" (match-string 1)))))
+
 (defun bibtex-fetch/iop-entry (url)
   "Fetch the BibTeX entry from an IOP URL."
-  (let* ((article-id (match-string 1 url))
-         (entry-url (bibtex-fetch/iop-entry-url article-id))
+  (let* ((entry-url (bibtex-fetch/iop-entry-url url))
          (entry (bibtex-fetch/retrieve-bibtex-1 entry-url)))
     (unless entry (error "Unable to fetch entry"))
     (setcdr (assoc "=key=" entry) (bibtex-print/generate-key entry))
