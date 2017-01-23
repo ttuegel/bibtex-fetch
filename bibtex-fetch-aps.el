@@ -48,9 +48,12 @@
     (setcdr (assoc "=key=" entry) (bibtex-print/generate-key entry))
     entry))
 
+(defun bibtex-fetch/aps-document-url (url)
+  (replace-regexp-in-string "/abstract/" "/pdf/" url))
+
 (defun bibtex-fetch/aps-document (url dest)
   "Fetch to DEST the document (PDF) corresponding to an APS journal URL."
-  (let ((document-url (replace-regexp-in-string "/abstract/" "/pdf/" url)))
+  (let ((document-url (bibtex-fetch/aps-document-url url)))
     (gui-set-selection 'CLIPBOARD dest)
     (browse-url document-url)))
 
