@@ -117,8 +117,9 @@ arguments, the URL and the destination for the file.")
   "Fetch the document corresponding to the BibTeX entry at point."
   (interactive)
   (let* ((entry (bibtex-fetch/parse-entry))
-         (url (bibtex-print/remove-delimiters
-               (cdr (assoc "url" entry))))
+         (url (bibtex-fetch/url-redirect
+               (bibtex-print/remove-delimiters
+                (cdr (assoc "url" entry)))))
          (key (cdr (assoc "=key=" entry)))
          (dest (s-concat "doc/" key ".pdf")))
     (bibtex-fetch-document-1 url dest)))
