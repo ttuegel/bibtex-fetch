@@ -45,11 +45,14 @@
          (entry (bibtex-parse-entry))
          (end (progn
                 (bibtex-normalize/next-entry)
-                (point))))
+                (point)))
+         (key (bibtex-print/generate-key entry)))
     (delete-region start end)
+    (setcdr (assoc "=key=" entry) key)
     entry))
 
 (defun bibtex-normalize-entry ()
+  (interactive)
   "Normalize the BibTeX entry at point."
   (bibtex-print-entry (bibtex-normalize/parse-and-delete-entry))
   (bibtex-beginning-of-entry))
