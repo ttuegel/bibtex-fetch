@@ -26,6 +26,8 @@
 (require 's)
 (require 'url)
 
+(require 'bibtex-fetch-ris)
+
 (defconst bibtex-fetch/nature-rx
   (rx string-start "http" (opt "s") "://www.nature.com/nature/journal/"
       (submatch (one-or-more (any "A-Z" "a-z" "0-9" "./"))) ".html")
