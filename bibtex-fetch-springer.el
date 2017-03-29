@@ -43,6 +43,9 @@
   (let* ((doi (match-string 1 url))
          (entry-url (bibtex-fetch/springer-entry-url doi))
          (entry (bibtex-fetch/retrieve-bibtex entry-url)))
+    (unless entry (error "Unable to fetch entry"))
+    (setcdr (assoc "=key=" entry) (bibtex-print/generate-key entry))
+    (setcdr (assoc "abstract" entry) nil)
     entry))
 
 (defun bibtex-fetch/springer-document (url dest)
