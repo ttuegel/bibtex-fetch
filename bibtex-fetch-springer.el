@@ -24,6 +24,7 @@
 
 (require 'browse-url)
 (require 'rx)
+(require 's)
 (require 'select)
 
 (require 'bibtex-fetch-doi)
@@ -33,9 +34,16 @@
       (submatch (one-or-more (any "A-Z" "a-z" "0-9" ".:/"))))
   "A regular expression to match Springer journal URLs.")
 
+(defun bibtex-fetch/springer-entry-url (doi)
+  "The citation URL for a Springer DOI."
+  (s-concat "https://citation-needed.springer.com/v2/references/" doi "?format=bibtex&flavour=citation"))
+
 (defun bibtex-fetch/springer-entry (url)
   "Fetch the BibTeX info from a Springer URL."
-  (bibtex-fetch/doi-entry-1 (match-string 1 url)))
+  (let* ((doi (match-string 1 url))
+         (entry-url (bibtex-fetch/springer-entry-url doi))
+         (entry (bibtex-fetch/retrieve-bibtex entry-url)))
+    entry))
 
 (defun bibtex-fetch/springer-document (url dest)
   "Fetch to DEST the document (PDF) corresponding to Springer journal URL."
