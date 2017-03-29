@@ -28,6 +28,7 @@
 (require 'helm-utils)
 (require 'rx)
 (require 'select)
+(require 'url-util)
 (require 'xml)
 
 (require 'bibtex-fetch-acs)
@@ -93,7 +94,7 @@ arguments, the URL and the destination for the file.")
 (defun bibtex-fetch-entry ()
   "Fetch the BibTeX entry for the URL on the system clipboard."
   (interactive)
-  (bibtex-fetch-entry-from-url (gui-get-selection 'CLIPBOARD)))
+  (bibtex-fetch-entry-from-url (url-unhex-string (gui-get-selection 'CLIPBOARD))))
 
 (defun bibtex-fetch/run-document-handler (url dest handler)
   (let* ((handler-rx (car handler))
