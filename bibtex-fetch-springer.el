@@ -40,13 +40,14 @@
 
 (defun bibtex-fetch/springer-entry (url)
   "Fetch the BibTeX info from a Springer URL."
-  (let* ((doi (match-string 1 url))
-         (entry-url (bibtex-fetch/springer-entry-url doi))
-         (entry (bibtex-fetch/retrieve-bibtex entry-url)))
-    (unless entry (error "Unable to fetch entry"))
-    (setcdr (assoc "=key=" entry) (bibtex-print/generate-key entry))
-    (setcdr (assoc "abstract" entry) nil)
-    entry))
+  (let ((doi (match-string 1 url)))
+    (unless doi (error "Unable to find DOI in URL"))
+    (let* ((entry-url (bibtex-fetch/springer-entry-url doi))
+           (entry (bibtex-fetch/retrieve-bibtex entry-url)))
+      (unless entry (error "Unable to fetch entry"))
+      (setcdr (assoc "=key=" entry) (bibtex-print/generate-key entry))
+      (setcdr (assoc "abstract" entry) nil)
+      entry)))
 
 (defun bibtex-fetch/springer-document (url dest)
   "Fetch to DEST the document (PDF) corresponding to Springer journal URL."
