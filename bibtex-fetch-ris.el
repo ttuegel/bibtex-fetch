@@ -27,7 +27,7 @@
 
 (defun bibtex-fetch/ris-entry-1 (url)
   (with-current-buffer
-      (url-retrieve-synchronously url)
+      (url-retrieve-synchronously url t)
     (shell-command-on-region (point-min) (point-max) "ris2xml | xml2bib" t)
     (goto-char (point-min))
     (narrow-to-region (1- (search-forward "@")) (re-search-forward "^}"))
