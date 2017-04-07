@@ -31,7 +31,7 @@
 
 (defconst bibtex-fetch/springer-rx
   (rx string-start "http" (opt "s") "://link.springer.com/article/"
-      (submatch (one-or-more (any "A-Z" "a-z" "0-9" ".:/"))))
+      (submatch (one-or-more (any "A-Z" "a-z" "0-9" ".:/-"))))
   "A regular expression to match Springer journal URLs.")
 
 (defun bibtex-fetch/springer-entry-url (doi)
