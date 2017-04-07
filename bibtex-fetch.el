@@ -39,6 +39,7 @@
 (require 'bibtex-fetch-iop)
 (require 'bibtex-fetch-jps)
 (require 'bibtex-fetch-nature)
+(require 'bibtex-fetch-nature-physics)
 (require 'bibtex-fetch-sciencedirect)
 (require 'bibtex-fetch-springer)
 
@@ -52,6 +53,7 @@
         (cons bibtex-fetch/springer-rx #'bibtex-fetch/springer-entry)
         (cons bibtex-fetch/jps-rx #'bibtex-fetch/jps-entry)
         (cons bibtex-fetch/nature-rx #'bibtex-fetch/nature-entry)
+        (cons bibtex-fetch/nature-physics-rx #'bibtex-fetch/nature-physics-entry)
         (cons bibtex-fetch/aip-rx #'bibtex-fetch/aip-entry))
   "The list of handlers to use to fetch a BibTeX entry from a URL.
 
@@ -68,6 +70,7 @@ arguments, but it may assume that `match-data' is set.")
         (cons bibtex-fetch/springer-rx #'bibtex-fetch/springer-document)
         (cons bibtex-fetch/jps-rx #'bibtex-fetch/jps-document)
         (cons bibtex-fetch/nature-rx #'bibtex-fetch/nature-document)
+        (cons bibtex-fetch/nature-physics-rx #'bibtex-fetch/nature-physics-document)
         (cons bibtex-fetch/aip-rx #'bibtex-fetch/aip-document))
   "The handlers used to fetch a document from a URL stored in a BibTeX entry.
 

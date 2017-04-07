@@ -28,30 +28,30 @@
 
 (require 'bibtex-fetch-ris)
 
-(defconst bibtex-fetch/nature-rx
-  (rx string-start "http" (opt "s") "://www.nature.com/nature/journal/"
+(defconst bibtex-fetch/nature-physics-rx
+  (rx string-start "http" (opt "s") "://www.nature.com/nphys/journal/"
       (submatch (one-or-more (any "A-Z" "a-z" "0-9" "./"))) ".html")
-  "A regular expression to match Nature URLs.")
+  "A regular expression to match Nature Physics URLs.")
 
-(defun bibtex-fetch/nature-entry-url (article-id)
-  (s-concat "http://www.nature.com/nature/journal/"
+(defun bibtex-fetch/nature-physics-entry-url (article-id)
+  (s-concat "http://www.nature.com/nphys/journal/"
             (replace-regexp-in-string "/full/" "/ris/" article-id) ".ris"))
 
-(defun bibtex-fetch/nature-entry (url)
-  "Fetch the BibTeX info from a Nature URL."
+(defun bibtex-fetch/nature-physics-entry (url)
+  "Fetch the BibTeX info from a Nature Physics URL."
   (let* ((article-id (match-string 1 url))
-         (entry-url (bibtex-fetch/nature-entry-url article-id)))
+         (entry-url (bibtex-fetch/nature-physics-entry-url article-id)))
     (bibtex-fetch/ris-entry entry-url)))
 
-(defun bibtex-fetch/nature-document-url (article-id)
-  (s-concat "http://www.nature.com/nature/journal/"
+(defun bibtex-fetch/nature-physics-document-url (article-id)
+  (s-concat "http://www.nature.com/nphys/journal/"
             (replace-regexp-in-string "/full/" "/pdf/" article-id) ".pdf"))
 
-(defun bibtex-fetch/nature-document (url dest)
-  "Fetch the document from a Nature URL."
+(defun bibtex-fetch/nature-physics-document (url dest)
+  "Fetch the document from a Nature Physics URL."
   (let* ((article-id (match-string 1 url))
-         (document-url (bibtex-fetch/nature-document-url article-id)))
+         (document-url (bibtex-fetch/nature-physics-document-url article-id)))
     (url-copy-file document-url dest)))
 
-(provide 'bibtex-fetch-nature)
-;;; bibtex-fetch-nature.el ends here
+(provide 'bibtex-fetch-nature-physics)
+;;; bibtex-fetch-nature-physics.el ends here
