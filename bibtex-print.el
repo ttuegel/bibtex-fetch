@@ -154,7 +154,7 @@ point.")
         (bibtex-autokey-titleword-ignore '("A" "An" "On" "The" "Eine?" "Der"
                                            "Die" "Das" "[^[:upper:]].*"
                                            ".*[^[:upper:][:lower:]0-9].*"))
-        (bibtex-autokey-titlewords 5)
+        (bibtex-autokey-titlewords 1)
         (bibtex-autokey-titlewords-stretch 2)
         (bibtex-autokey-titleword-separator "_"))
     (progn
