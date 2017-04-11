@@ -26,6 +26,7 @@
 (require 'bibtex)
 (require 'bibtex-print)
 (require 'helm-utils)
+(require 'org)
 (require 'rx)
 (require 'select)
 (require 'url-util)
@@ -180,6 +181,23 @@ arguments, the URL and the destination for the file.")
 (bind-key "C-c M-o" #'bibtex-open-url bibtex-mode-map)
 (bind-key "C-c C-c" #'bibtex-capture bibtex-mode-map)
 (bind-key "C-c a" #'bibtex-associate bibtex-mode-map)
+
+(defun org-bibtex-open-document ()
+  "Run `bibtex-open-document' if point is in a BibTeX source block."
+  (interactive)
+  (pcase (org-babel-get-src-block-info)
+    (`("bibtex" . ,_) (bibtex-open-document))
+    (_ (error "No BibTeX block at point"))))
+
+(defun org-bibtex-capture ()
+  "Run `bibtex-capture' if point is in a BibTeX source block."
+  (interactive)
+  (pcase (org-babel-get-src-block-info)
+    (`("bibtex" . ,_) (bibtex-capture))
+    (_ (error "No BibTeX block at point"))))
+
+(bind-key "C-c o" #'org-bibtex-open-document org-mode-map)
+(bind-key "C-c c" #'org-bibtex-capture org-mode-map)
 
 (provide 'bibtex-fetch)
 ;;; bibtex-fetch.el ends here
