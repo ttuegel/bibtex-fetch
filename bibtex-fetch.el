@@ -43,6 +43,13 @@
 (require 'bibtex-fetch-sciencedirect)
 (require 'bibtex-fetch-springer)
 
+(defvar-local bibtex-fetch-document-path
+  nil
+  "The directory containing the documents associated with the bibliography.
+
+Each bibliography entry may have an associated document. The filename of the
+document is the same as the entry key, plus the appropriate extension.")
+
 (defvar bibtex-fetch-entry-handlers
   (list (cons bibtex-fetch/arxiv-rx #'bibtex-fetch/arxiv-entry)
         (cons bibtex-fetch/doi-rx #'bibtex-fetch/doi-entry)
@@ -117,6 +124,13 @@ arguments, the URL and the destination for the file.")
     (when (not matched)
       (error "No handler found to fetch document"))))
 
+(defun bibtex-fetch/document-file-name (key)
+  "Determine the full path and file name of the document associated with KEY."
+  (unless bibtex-fetch-document-path
+    (error "Please set `bibtex-fetch-document-path'"))
+  (expand-file-name
+   (s-concat bibtex-fetch-document-path "/" key ".pdf")))
+
 (defun bibtex-fetch-document ()
   "Fetch the document corresponding to the BibTeX entry at point."
   (interactive)
@@ -125,7 +139,7 @@ arguments, the URL and the destination for the file.")
                (bibtex-print/remove-delimiters
                 (cdr (assoc "url" entry)))))
          (key (cdr (assoc "=key=" entry)))
-         (dest (s-concat "doc/" key ".pdf")))
+         (dest (bibtex-fetch/document-file-name key)))
     (bibtex-fetch-document-1 url dest)))
 
 (defun bibtex-capture ()
@@ -139,7 +153,7 @@ arguments, the URL and the destination for the file.")
   (interactive)
   (let* ((entry (bibtex-fetch/parse-entry))
          (key (cdr (assoc "=key=" entry)))
-         (document (expand-file-name (s-concat "doc/" key ".pdf"))))
+         (document (bibtex-fetch/document-file-name key)))
     (if (file-readable-p document)
         (helm-open-file-with-default-tool document)
       (error "Could not open %s" document))))
@@ -159,7 +173,7 @@ arguments, the URL and the destination for the file.")
   (interactive)
   (let* ((entry (bibtex-fetch/parse-entry))
          (key (cdr (assoc "=key=" entry)))
-         (document (expand-file-name (s-concat "doc/" key ".pdf"))))
+         (document (bibtex-fetch/document-file-name key)))
     (gui-set-selection 'CLIPBOARD document)))
 
 (bind-key "C-c o" #'bibtex-open-document bibtex-mode-map)
