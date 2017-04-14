@@ -210,5 +210,24 @@ arguments, the URL and the destination for the file.")
   "Turn off `bibtex-fetch-mode'."
   (bibtex-fetch-mode -1))
 
+(define-minor-mode org-bibtex-fetch-mode
+  "A minor mode for managing BibTeX citations and documents in Org.")
+
+(define-prefix-command 'org-bibtex-fetch-prefix-map)
+(bind-key "C-c C-b" #'org-bibtex-fetch-prefix-map org-bibtex-fetch-map)
+
+(bind-key "o" #'bibtex-open-document org-bibtex-fetch-prefix-map)
+(bind-key "M-o" #'bibtex-open-url org-bibtex-fetch-prefix-map)
+(bind-key "C-c" #'bibtex-capture org-bibtex-fetch-prefix-map)
+(bind-key "a" #'bibtex-associate org-bibtex-fetch-prefix-map)
+
+(defun turn-on-org-bibtex-fetch-mode ()
+  "Turn on `org-bibtex-fetch-mode'."
+  (org-bibtex-fetch-mode 1))
+
+(defun turn-off-org-bibtex-fetch-mode ()
+  "Turn off `org-bibtex-fetch-mode'."
+  (org-bibtex-fetch-mode -1))
+
 (provide 'bibtex-fetch)
 ;;; bibtex-fetch.el ends here
