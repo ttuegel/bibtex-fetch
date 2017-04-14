@@ -177,23 +177,6 @@ arguments, the URL and the destination for the file.")
          (document (bibtex-fetch/document-file-name key)))
     (gui-set-selection 'CLIPBOARD document)))
 
-(defun org-bibtex-open-document ()
-  "Run `bibtex-open-document' if point is in a BibTeX source block."
-  (interactive)
-  (pcase (org-babel-get-src-block-info)
-    (`("bibtex" . ,_) (bibtex-open-document))
-    (_ (error "No BibTeX block at point"))))
-
-(defun org-bibtex-capture ()
-  "Run `bibtex-capture' if point is in a BibTeX source block."
-  (interactive)
-  (pcase (org-babel-get-src-block-info)
-    (`("bibtex" . ,_) (bibtex-capture))
-    (_ (error "No BibTeX block at point"))))
-
-(bind-key "C-c o" #'org-bibtex-open-document org-mode-map)
-(bind-key "C-c c" #'org-bibtex-capture org-mode-map)
-
 (define-minor-mode bibtex-fetch-mode
   "A minor mode for managing BibTeX citations and documents."
   :keymap (make-sparse-keymap))
@@ -220,10 +203,38 @@ arguments, the URL and the destination for the file.")
 (define-prefix-command 'org-bibtex-fetch-prefix-map)
 (bind-key "C-c C-b" #'org-bibtex-fetch-prefix-map org-bibtex-fetch-mode-map)
 
-(bind-key "o" #'bibtex-open-document org-bibtex-fetch-prefix-map)
-(bind-key "M-o" #'bibtex-open-url org-bibtex-fetch-prefix-map)
-(bind-key "C-c" #'bibtex-capture org-bibtex-fetch-prefix-map)
-(bind-key "a" #'bibtex-associate org-bibtex-fetch-prefix-map)
+(defun org-bibtex-open-document ()
+  "Run `bibtex-open-document' if point is in a BibTeX source block."
+  (interactive)
+  (pcase (org-babel-get-src-block-info)
+    (`("bibtex" . ,_) (bibtex-open-document))
+    (_ (error "No BibTeX block at point"))))
+
+(defun org-bibtex-capture ()
+  "Run `bibtex-capture' if point is in a BibTeX source block."
+  (interactive)
+  (pcase (org-babel-get-src-block-info)
+    (`("bibtex" . ,_) (bibtex-capture))
+    (_ (error "No BibTeX block at point"))))
+
+(defun org-bibtex-open-url ()
+  "Run `bibtex-open-url' if point is in a BibTeX source block."
+  (interactive)
+  (pcase (org-babel-get-src-block-info)
+    (`("bibtex" . ,_) (bibtex-open-url))
+    (_ (error "No BibTeX block at point"))))
+
+(defun org-bibtex-associate ()
+  "Run `bibtex-associate' if point is in a BibTeX source block."
+  (interactive)
+  (pcase (org-babel-get-src-block-info)
+    (`("bibtex" . ,_) (bibtex-associate))
+    (_ (error "No BibTeX block at point"))))
+
+(bind-key "o" #'org-bibtex-open-document org-bibtex-fetch-prefix-map)
+(bind-key "M-o" #'org-bibtex-open-url org-bibtex-fetch-prefix-map)
+(bind-key "C-c" #'org-bibtex-capture org-bibtex-fetch-prefix-map)
+(bind-key "a" #'org-bibtex-associate org-bibtex-fetch-prefix-map)
 
 (defun turn-on-org-bibtex-fetch-mode ()
   "Turn on `org-bibtex-fetch-mode'."
