@@ -205,10 +205,12 @@ arguments, the URL and the destination for the file.")
 
 (defun turn-on-bibtex-fetch-mode ()
   "Turn on `bibtex-fetch-mode'."
+  (interactive)
   (bibtex-fetch-mode 1))
 
 (defun turn-off-bibtex-fetch-mode ()
   "Turn off `bibtex-fetch-mode'."
+  (interactive)
   (bibtex-fetch-mode -1))
 
 (define-minor-mode org-bibtex-fetch-mode
@@ -225,10 +227,12 @@ arguments, the URL and the destination for the file.")
 
 (defun turn-on-org-bibtex-fetch-mode ()
   "Turn on `org-bibtex-fetch-mode'."
+  (interactive)
   (org-bibtex-fetch-mode 1))
 
 (defun turn-off-org-bibtex-fetch-mode ()
   "Turn off `org-bibtex-fetch-mode'."
+  (interactive)
   (org-bibtex-fetch-mode -1))
 
 (provide 'bibtex-fetch)
