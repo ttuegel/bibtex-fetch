@@ -212,10 +212,11 @@ arguments, the URL and the destination for the file.")
   (bibtex-fetch-mode -1))
 
 (define-minor-mode org-bibtex-fetch-mode
-  "A minor mode for managing BibTeX citations and documents in Org.")
+  "A minor mode for managing BibTeX citations and documents in Org."
+  :keymap (make-sparse-keymap))
 
 (define-prefix-command 'org-bibtex-fetch-prefix-map)
-(bind-key "C-c C-b" #'org-bibtex-fetch-prefix-map org-bibtex-fetch-map)
+(bind-key "C-c C-b" #'org-bibtex-fetch-prefix-map org-bibtex-fetch-mode-map)
 
 (bind-key "o" #'bibtex-open-document org-bibtex-fetch-prefix-map)
 (bind-key "M-o" #'bibtex-open-url org-bibtex-fetch-prefix-map)
