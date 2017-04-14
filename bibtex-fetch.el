@@ -177,11 +177,6 @@ arguments, the URL and the destination for the file.")
          (document (bibtex-fetch/document-file-name key)))
     (gui-set-selection 'CLIPBOARD document)))
 
-(bind-key "C-c o" #'bibtex-open-document bibtex-mode-map)
-(bind-key "C-c M-o" #'bibtex-open-url bibtex-mode-map)
-(bind-key "C-c C-c" #'bibtex-capture bibtex-mode-map)
-(bind-key "C-c a" #'bibtex-associate bibtex-mode-map)
-
 (defun org-bibtex-open-document ()
   "Run `bibtex-open-document' if point is in a BibTeX source block."
   (interactive)
@@ -198,6 +193,22 @@ arguments, the URL and the destination for the file.")
 
 (bind-key "C-c o" #'org-bibtex-open-document org-mode-map)
 (bind-key "C-c c" #'org-bibtex-capture org-mode-map)
+
+(define-minor-mode bibtex-fetch-mode
+  "A minor mode for managing BibTeX citations and documents.")
+
+(bind-key "C-c o" #'bibtex-open-document bibtex-fetch-mode-map)
+(bind-key "C-c M-o" #'bibtex-open-url bibtex-fetch-mode-map)
+(bind-key "C-c C-c" #'bibtex-capture bibtex-fetch-mode-map)
+(bind-key "C-c a" #'bibtex-associate bibtex-fetch-mode-map)
+
+(defun turn-on-bibtex-fetch-mode ()
+  "Turn on `bibtex-fetch-mode'."
+  (bibtex-fetch-mode 1))
+
+(defun turn-off-bibtex-fetch-mode ()
+  "Turn off `bibtex-fetch-mode'."
+  (bibtex-fetch-mode -1))
 
 (provide 'bibtex-fetch)
 ;;; bibtex-fetch.el ends here
