@@ -195,7 +195,8 @@ arguments, the URL and the destination for the file.")
 (bind-key "C-c c" #'org-bibtex-capture org-mode-map)
 
 (define-minor-mode bibtex-fetch-mode
-  "A minor mode for managing BibTeX citations and documents.")
+  "A minor mode for managing BibTeX citations and documents."
+  :keymap (make-sparse-keymap))
 
 (bind-key "C-c o" #'bibtex-open-document bibtex-fetch-mode-map)
 (bind-key "C-c M-o" #'bibtex-open-url bibtex-fetch-mode-map)
