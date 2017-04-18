@@ -29,9 +29,8 @@
 (defconst bibtex-fetch/iop-rx
   (rx string-start
       "http" (opt "s") "://iopscience.iop.org/article/"
-      (one-or-more (not (any ?/))) ;; journal id
-      "/"
-      (submatch (one-or-more not-newline)))
+      ;; article id
+      (submatch (one-or-more (any digit "./-"))))
   "A regular expression to match IOP URLs.")
 
 (defun bibtex-fetch/iop-entry-url (article-id)
@@ -65,16 +64,9 @@
 (defun bibtex-fetch/iop-document-url (article-id)
   (s-concat "http://iopscience.iop.org/article/" article-id "/pdf"))
 
-(defconst bibtex-fetch/iop-document-rx
-  (rx string-start "http" (opt "s") "://stacks.iop.org")
-  "A regular expression to match IOP URLs.")
-
 (defun bibtex-fetch/iop-document (url dest)
   "Fetch the document associated with an IOP URL."
-  (let* ((article-url (bibtex-fetch/url-redirect url))
-         (article-id (progn
-                       (string-match bibtex-fetch/iop-rx article-url)
-                       (match-string 1 article-url)))
+  (let* ((article-id (match-string 1 url))
          (document-url (bibtex-fetch/iop-document-url article-id)))
     (url-copy-file document-url dest t)))
 
