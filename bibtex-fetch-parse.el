@@ -31,7 +31,9 @@ If point is inside or at the beginning of an entry, parse and return that entry.
 Restore point when finished."
   (save-excursion
     (bibtex-beginning-of-entry)
-    (bibtex-parse-entry)))
+    (let ((entry (bibtex-parse-entry)))
+      (unless entry (error "Could not parse entry"))
+      entry)))
 
 
 (provide 'bibtex-fetch-parse)
