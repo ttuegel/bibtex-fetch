@@ -54,6 +54,7 @@
       (url-retrieve-synchronously url t)
     (goto-char (point-min))
     (set-buffer-multibyte t)
+    (bibtex-set-dialect 'BibTeX)
     (save-match-data (re-search-forward bibtex-entry-head))
     (bibtex-fetch/parse-entry)))
 
