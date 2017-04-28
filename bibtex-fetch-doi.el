@@ -52,6 +52,7 @@
   "Retrieve a BibTeX entry from URL."
   (with-current-buffer
       (url-retrieve-synchronously url t)
+    (bibtex-set-dialect 'BibTeX t)
     (goto-char (point-min))
     (set-buffer-multibyte t)
     (bibtex-set-dialect 'BibTeX)
