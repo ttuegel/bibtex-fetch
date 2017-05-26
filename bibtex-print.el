@@ -73,7 +73,7 @@ point.")
         (setq matched (bibtex-print/run-field-handler field (pop handlers))))
       (unless matched (bibtex-print-default-field field)))))
 
-(defun bibtex-print-entry (entry)
+(defun bibtex-print/insert-entry (entry)
   "Pretty-print a parsed BibTeX entry."
   (let ((type (cdr (assoc "=type=" entry)))
         (key (cdr (assoc "=key=" entry))))

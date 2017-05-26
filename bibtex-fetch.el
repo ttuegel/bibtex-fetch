@@ -44,7 +44,7 @@
 (require 'bibtex-fetch-sciencedirect)
 (require 'bibtex-fetch-springer)
 
-(defvar-local bibtex-fetch-document-path
+(defvar-local bibtex-fetch/document-path
   nil
   "The directory containing the documents associated with the bibliography.
 
@@ -92,7 +92,7 @@ arguments, the URL and the destination for the file.")
     (when (string-match handler-rx url)
       (funcall handler-fun url))))
 
-(defun bibtex-fetch-entry-from-url (url)
+(defun bibtex-fetch/from-url (url)
   "Fetch the BibTeX entry for the document at URL."
   (interactive "MURL: ")
   (let* ((handlers bibtex-fetch-entry-handlers) entry)
@@ -100,12 +100,11 @@ arguments, the URL and the destination for the file.")
       (setq entry (bibtex-fetch/run-entry-handler url (pop handlers))))
     (if (not entry)
         (error "No handler found to fetch entry")
-      (bibtex-print-entry entry))))
+      entry)))
 
-(defun bibtex-fetch-entry ()
+(defun bibtex-fetch/entry-from-clipboard ()
   "Fetch the BibTeX entry for the URL on the system clipboard."
-  (interactive)
-  (bibtex-fetch-entry-from-url (url-unhex-string (gui-get-selection 'CLIPBOARD))))
+  (bibtex-fetch/from-url (url-unhex-string (gui-get-selection 'CLIPBOARD))))
 
 (defun bibtex-fetch/run-document-handler (url dest handler)
   (let* ((handler-rx (car handler))
@@ -116,7 +115,14 @@ arguments, the URL and the destination for the file.")
       (funcall handler-fun url final-dest)
       t)))
 
-(defun bibtex-fetch-document-1 (url dest)
+(defun bibtex-fetch/document-file-name (key &optional document-path)
+  "Determine the full path and file name of the document associated with KEY."
+  (unless (or document-path bibtex-fetch/document-path)
+    (error "Please set `bibtex-fetch/document-path'"))
+  (expand-file-name
+   (s-concat (or document-path bibtex-fetch/document-path) "/" key ".pdf")))
+
+(defun bibtex-fetch/document-from-url (url dest)
   "Fetch the document corresponding to URL into DEST."
   (let* ((handlers bibtex-fetch-document-handlers) matched)
     (while (and (not matched) handlers)
@@ -125,126 +131,40 @@ arguments, the URL and the destination for the file.")
     (when (not matched)
       (error "No handler found to fetch document"))))
 
-(defun bibtex-fetch/document-file-name (key)
-  "Determine the full path and file name of the document associated with KEY."
-  (unless bibtex-fetch-document-path
-    (error "Please set `bibtex-fetch-document-path'"))
-  (expand-file-name
-   (s-concat bibtex-fetch-document-path "/" key ".pdf")))
-
-(defun bibtex-fetch-document ()
-  "Fetch the document corresponding to the BibTeX entry at point."
-  (interactive)
-  (let* ((entry (bibtex-fetch/parse-entry))
-         (url (bibtex-fetch/url-redirect
-               (bibtex-print/remove-delimiters
-                (cdr (assoc "url" entry)))))
+(defun bibtex-fetch/document-from-entry (entry document-path)
+  "Fetch the document corresponding to ENTRY and retrieve it into DOCUMENT-PATH."
+  (let* ((url (bibtex-print/remove-delimiters (cdr (assoc "url" entry))))
+         (url-redirect (bibtex-fetch/url-redirect url))
          (key (cdr (assoc "=key=" entry)))
-         (dest (bibtex-fetch/document-file-name key)))
-    (bibtex-fetch-document-1 url dest)))
+         (file-name (bibtex-fetch/document-file-name key document-path)))
+    (bibtex-fetch/document-from-url url-redirect file-name)))
 
-(defun bibtex-capture ()
+(defun bibtex-fetch/org-insert-entry (entry)
+  (org-insert-heading-respect-content)
+  (when (> 2 (org-current-level)) (org-demote))
+  (let ((title (bibtex-print/remove-delimiters (cdr (assoc "title" entry)))))
+    (insert title) (newline))
+  (newline)
+  (insert "#+BEGIN_SRC bibtex") (newline)
+  (insert "#+END_SRC") (newline)
+  (forward-line -1)
+  (let ((document-path bibtex-fetch/document-path))
+    (unless document-path (error "Please set `bibtex-fetch/document-path'"))
+    (org-babel-do-in-edit-buffer
+     (bibtex-print/insert-entry entry)
+     (bibtex-fetch/document-from-entry entry document-path))
+    (let* ((key (cdr (assoc "=key=" entry)))
+           (file-name (bibtex-fetch/document-file-name key document-path)))
+      (forward-line 2)
+      (insert "[[file:" file-name "]]")))
+  (newline))
+
+(defun bibtex-fetch/org-insert-entry-from-clipboard ()
   (interactive)
-  (progn
-    (when (bibtex-fetch-entry)
-      (bibtex-fetch-document))))
-
-(defun bibtex-open-document ()
-  "Open the document associated with the BibTeX entry at point."
-  (interactive)
-  (let* ((entry (bibtex-fetch/parse-entry))
-         (key (cdr (assoc "=key=" entry)))
-         (document (bibtex-fetch/document-file-name key)))
-    (if (file-readable-p document)
-        (helm-open-file-with-default-tool document)
-      (error "Could not open %s" document))))
-
-(defun bibtex-open-url ()
-  "Open the URL associated with the BibTeX entry at point."
-  (interactive
-   (let* ((entry (bibtex-fetch/parse-entry))
-          (url (bibtex-print/remove-delimiters
-                (cdr (assoc "url" entry)))))
-     (if url
-         (browse-url url)
-       (error "No URL for this entry")))))
-
-(defun bibtex-associate ()
-  "Copy the associated document path to the clipboard."
-  (interactive)
-  (let* ((entry (bibtex-fetch/parse-entry))
-         (key (cdr (assoc "=key=" entry)))
-         (document (bibtex-fetch/document-file-name key)))
-    (gui-set-selection 'CLIPBOARD document)))
-
-(define-minor-mode bibtex-fetch-mode
-  "A minor mode for managing BibTeX citations and documents."
-  :keymap (make-sparse-keymap))
-
-(bind-key "C-c o" #'bibtex-open-document bibtex-fetch-mode-map)
-(bind-key "C-c M-o" #'bibtex-open-url bibtex-fetch-mode-map)
-(bind-key "C-c C-c" #'bibtex-capture bibtex-fetch-mode-map)
-(bind-key "C-c a" #'bibtex-associate bibtex-fetch-mode-map)
-
-(defun turn-on-bibtex-fetch-mode ()
-  "Turn on `bibtex-fetch-mode'."
-  (interactive)
-  (bibtex-fetch-mode 1))
-
-(defun turn-off-bibtex-fetch-mode ()
-  "Turn off `bibtex-fetch-mode'."
-  (interactive)
-  (bibtex-fetch-mode -1))
-
-(define-minor-mode org-bibtex-fetch-mode
-  "A minor mode for managing BibTeX citations and documents in Org."
-  :keymap (make-sparse-keymap))
-
-(define-prefix-command 'org-bibtex-fetch-prefix-map)
-(bind-key "C-c C-b" #'org-bibtex-fetch-prefix-map org-bibtex-fetch-mode-map)
-
-(defun org-bibtex-open-document ()
-  "Run `bibtex-open-document' if point is in a BibTeX source block."
-  (interactive)
-  (pcase (org-babel-get-src-block-info)
-    (`("bibtex" . ,_) (bibtex-open-document))
-    (_ (error "No BibTeX block at point"))))
-
-(defun org-bibtex-capture ()
-  "Run `bibtex-capture' if point is in a BibTeX source block."
-  (interactive)
-  (pcase (org-babel-get-src-block-info)
-    (`("bibtex" . ,_) (bibtex-capture))
-    (_ (error "No BibTeX block at point"))))
-
-(defun org-bibtex-open-url ()
-  "Run `bibtex-open-url' if point is in a BibTeX source block."
-  (interactive)
-  (pcase (org-babel-get-src-block-info)
-    (`("bibtex" . ,_) (bibtex-open-url))
-    (_ (error "No BibTeX block at point"))))
-
-(defun org-bibtex-associate ()
-  "Run `bibtex-associate' if point is in a BibTeX source block."
-  (interactive)
-  (pcase (org-babel-get-src-block-info)
-    (`("bibtex" . ,_) (bibtex-associate))
-    (_ (error "No BibTeX block at point"))))
-
-(bind-key "o" #'org-bibtex-open-document org-bibtex-fetch-prefix-map)
-(bind-key "M-o" #'org-bibtex-open-url org-bibtex-fetch-prefix-map)
-(bind-key "C-c" #'org-bibtex-capture org-bibtex-fetch-prefix-map)
-(bind-key "a" #'org-bibtex-associate org-bibtex-fetch-prefix-map)
-
-(defun turn-on-org-bibtex-fetch-mode ()
-  "Turn on `org-bibtex-fetch-mode'."
-  (interactive)
-  (org-bibtex-fetch-mode 1))
-
-(defun turn-off-org-bibtex-fetch-mode ()
-  "Turn off `org-bibtex-fetch-mode'."
-  (interactive)
-  (org-bibtex-fetch-mode -1))
+  (let* ((url (url-unhex-string (gui-get-selection 'CLIPBOARD)))
+         (entry (bibtex-fetch/from-url url)))
+    (unless entry (error "Could not fetch BibTeX entry"))
+    (bibtex-fetch/org-insert-entry entry)))
 
 (provide 'bibtex-fetch)
 ;;; bibtex-fetch.el ends here
