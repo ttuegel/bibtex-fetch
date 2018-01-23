@@ -202,7 +202,7 @@ Use the author/editor, the year and the title field."
          (year (bibtex-print/year entry))
          (title (bibtex-print/title entry))
          (bibtex-autokey-prefix-string "")
-         (bibtex-autokey-name-year-separator "")
+         (bibtex-autokey-name-year-separator "_")
          (bibtex-autokey-year-title-separator "_")
          (autokey (concat bibtex-autokey-prefix-string
                           names
