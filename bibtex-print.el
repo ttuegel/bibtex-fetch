@@ -123,7 +123,7 @@ point.")
   "Return year field of ENTRY."
   (let ((yearfield (bibtex-print/remove-delimiters
                     (cdr (assoc "year" entry))))
-        (bibtex-autokey-year-length 2))
+        (bibtex-autokey-year-length 4))
     (substring yearfield (max 0 (- (length yearfield)
                                    bibtex-autokey-year-length)))))
 
