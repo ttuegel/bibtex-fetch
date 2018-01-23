@@ -30,10 +30,8 @@
 (defun bibtex-normalize/next-entry ()
   "Jump to the beginning of the next bibtex entry."
   ;; search forward for an entry
-  (if (re-search-forward bibtex-entry-head nil t)
-      ;; go to beginning of the entry
-      (bibtex-beginning-of-entry)
-    (goto-char (point-max))))
+  (when (re-search-forward bibtex-entry-head nil t)
+    (bibtex-beginning-of-entry)))
 
 (defun bibtex-normalize/demangle-names (names)
   (mapcar 'bibtex-autokey-demangle-name
@@ -43,9 +41,9 @@
   "Parse a BibTeX entry at point and then delete it."
   (let* ((start (point))
          (entry (bibtex-parse-entry))
-         (end (progn
-                (bibtex-normalize/next-entry)
-                (point)))
+         (end (if (bibtex-normalize/next-entry)
+                  (point)
+                (point-max)))
          (key (bibtex-print/generate-key entry)))
     (delete-region start end)
     (setcdr (assoc "=key=" entry) key)
@@ -54,16 +52,14 @@
 (defun bibtex-normalize-entry ()
   (interactive)
   "Normalize the BibTeX entry at point."
-  (bibtex-print-entry (bibtex-normalize/parse-and-delete-entry))
-  (bibtex-beginning-of-entry))
+  (bibtex-print/insert-entry (bibtex-normalize/parse-and-delete-entry)))
 
 (defun bibtex-normalize-buffer ()
   "Normalize every entry in the current BibTeX buffer."
   (interactive)
   (goto-char (point-min))
-  (bibtex-normalize/next-entry)
-  (delete-region (point-min) (point))
-  (while (< (point) (point-max)) (bibtex-normalize-entry)))
+  (while (bibtex-normalize/next-entry)
+    (bibtex-normalize-entry)))
 
 (provide 'bibtex-normalize)
 ;;; bibtex-normalize.el ends here
